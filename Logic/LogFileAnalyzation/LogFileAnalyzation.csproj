@@ -5,4 +5,9 @@
     <RootNamespace>Logic.LogFileAnalyzation</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\CrossCutting\DataClasses\DataClasses.csproj" />
+    <ProjectReference Include="..\LogFileAnalyzation.Contract\LogFileAnalyzation.Contract.csproj" />
+  </ItemGroup>
+
 </Project>
