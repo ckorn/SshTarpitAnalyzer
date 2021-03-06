@@ -14,7 +14,7 @@ namespace Logic.LogFileAnalyzation
     {
         private const string Connected = "connected";
         private const string Disconnected = "disconnected";
-        public List<ConnectionInformation> Parse(string text)
+        public IReadOnlyCollection<ConnectionInformation> Parse(string text)
         {
             List<ConnectionInformation> ret = new();
             using StringReader stringReader = new(text);
@@ -57,6 +57,6 @@ namespace Logic.LogFileAnalyzation
             return ret;
         }
 
-        public List<ConnectionInformation> ParseByFileName(string fileName) => Parse(File.ReadAllText(fileName));
+        public IReadOnlyCollection<ConnectionInformation> ParseByFileName(string fileName) => Parse(File.ReadAllText(fileName));
     }
 }

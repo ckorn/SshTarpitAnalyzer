@@ -1,38 +1,108 @@
-﻿@page "/sshtarpit"
+﻿@inject HttpClient Http
+@page "/sshtarpit"
 
 <h3>SshTarpit</h3>
 
-<Button Clicked="@(async () => await HandleRedraw())">Redraw</Button>
+<!--<FileEdit @ref="fileEdit" Changed="@OnChanged" MaxMessageSize="99999999" />-->
 
-<TextEdit @ref="textEdit"></TextEdit>
+<Field Horizontal="true">
+    <FieldLabel ColumnSize="ColumnSize.Is2">Pastebin raw url:</FieldLabel>
+    <FieldBody ColumnSize="ColumnSize.Is10">
+        <TextEdit @bind-Text="@sshTarpitLogUrl"></TextEdit>
+    </FieldBody>
+</Field>
+
+<Button Clicked="@(async () => await HandleRedraw())">Analyze log</Button>
 
 <LineChart @ref="lineChart" TItem="double" />
 
-@code {
-    LineChart<double> lineChart;
-    TextEdit textEdit;
+<!--<BlazorInputFile.InputFile OnChange="HandleFileSelected" MaxMessageSize="99999999" />-->
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+@code {
+    FileEdit fileEdit;
+    LineChart<double> lineChart;
+    string sshTarpitLog;
+    string sshTarpitLogUrl;
+    ILogFileParser logFileParser = new LogFileParser();
+    IFileListEntry file;
+
+    void HandleFileSelected(IFileListEntry[] files)
     {
-        if (firstRender)
+        file = files.FirstOrDefault();
+    }
+
+    async Task OnChanged(FileChangedEventArgs e)
+    {
+        try
         {
-            await HandleRedraw();
+            foreach (IFileEntry file in e.Files)
+            {
+                // A stream is going to be the destination stream we're writing to.
+                using (MemoryStream stream = new MemoryStream())
+                {
+                    // Here we're telling the FileEdit where to write the upload result
+                    await file.WriteToStreamAsync(stream);
+
+                    // Once we reach this line it means the file is fully uploaded.
+                    // In this case we're going to offset to the beginning of file
+                    // so we can read it.
+                    stream.Seek(0, SeekOrigin.Begin);
+
+                    // Use the stream reader to read the content of uploaded file,
+                    // in this case we can assume it is a textual file.
+                    using (StreamReader reader = new StreamReader(stream))
+                    {
+                        sshTarpitLog = await reader.ReadToEndAsync();
+                    }
+                }
+            }
+        }
+        finally
+        {
+            this.StateHasChanged();
         }
     }
 
     async Task HandleRedraw()
     {
+        //if (file == null)
+        //{
+        //    return;
+        //}
+        //using (StreamReader reader = new StreamReader(file.Data))
+        //{
+        //    this.sshTarpitLog = await reader.ReadToEndAsync();
+        //}
+        if (string.IsNullOrEmpty(this.sshTarpitLogUrl))
+        {
+            return;
+        }
+        this.sshTarpitLog = await Http.GetStringAsync(this.sshTarpitLogUrl);
         await lineChart.Clear();
-
-        await lineChart.AddLabelsDatasetsAndUpdate(Labels, GetLineChartDataset());
+        List<(int seconds, int count)> logFileDataList = await Task.Run<List<(int seconds, int count)>>(() => LogFileData(this.sshTarpitLog));
+        List<string> labelList = new();
+        List<double> dataList = new();
+        foreach ((int seconds, int count) in logFileDataList)
+        {
+            string label = $"{seconds.ToString()} s";
+            if (seconds >= 60)
+            {
+                int minutes = seconds / 60;
+                int secondsPart = seconds % 60;
+                label = $"{minutes}m {secondsPart}s";
+            }
+            labelList.Add(label);
+            dataList.Add(count);
+        }
+        await lineChart.AddLabelsDatasetsAndUpdate(labelList, GetLineChartDataset(dataList));
     }
 
-    LineChartDataset<double> GetLineChartDataset()
+    LineChartDataset<double> GetLineChartDataset(List<double> dataList)
     {
         return new LineChartDataset<double>
         {
-            Label = "# of randoms",
-            Data = RandomizeData(),
+            Label = "# of seconds in the tarpit",
+            Data = dataList,
             BackgroundColor = backgroundColors,
             BorderColor = borderColors,
             Fill = true,
@@ -41,14 +111,22 @@
         };
     }
 
-    string[] Labels = { "Red", "Blue", "Yellow", "Green", "Purple", "Orange" };
     List<string> backgroundColors = new List<string> { ChartColor.FromRgba(255, 99, 132, 0.2f), ChartColor.FromRgba(54, 162, 235, 0.2f), ChartColor.FromRgba(255, 206, 86, 0.2f), ChartColor.FromRgba(75, 192, 192, 0.2f), ChartColor.FromRgba(153, 102, 255, 0.2f), ChartColor.FromRgba(255, 159, 64, 0.2f) };
     List<string> borderColors = new List<string> { ChartColor.FromRgba(255, 99, 132, 1f), ChartColor.FromRgba(54, 162, 235, 1f), ChartColor.FromRgba(255, 206, 86, 1f), ChartColor.FromRgba(75, 192, 192, 1f), ChartColor.FromRgba(153, 102, 255, 1f), ChartColor.FromRgba(255, 159, 64, 1f) };
 
-    List<double> RandomizeData()
+    List<(int seconds, int count)> LogFileData(string sshTarpitLog)
     {
-        var r = new Random(DateTime.Now.Millisecond);
-
-        return new List<double> { r.Next(3, 50) * r.NextDouble(), r.Next(3, 50) * r.NextDouble(), r.Next(3, 50) * r.NextDouble(), r.Next(3, 50) * r.NextDouble(), r.Next(3, 50) * r.NextDouble(), r.Next(3, 50) * r.NextDouble() };
+        List<(int, int)> ret = new();
+        if (string.IsNullOrEmpty(sshTarpitLog))
+        {
+            return ret;
+        }
+        IReadOnlyCollection<ConnectionInformation> connectionInformationList = logFileParser.Parse(sshTarpitLog);
+        foreach (var grouped in connectionInformationList.GroupBy(x => (int)x.Duration.TotalSeconds).OrderBy(x => x.Key))
+        {
+            int count = grouped.Count();
+            ret.Add((grouped.Key, count));
+        }
+        return ret;
     }
 }
