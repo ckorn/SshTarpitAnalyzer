@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31025.194
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SshTarpitAnalyzer.Blazor", "UI\SshTarpitAnalyzer.Blazor\SshTarpitAnalyzer.Blazor.csproj", "{9EB3F682-3E8A-481F-AD77-CC61949FDF9C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SshTarpitAnalyzer.Blazor", "UI\SshTarpitAnalyzer.Blazor\SshTarpitAnalyzer.Blazor.csproj", "{9EB3F682-3E8A-481F-AD77-CC61949FDF9C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CrossCutting", "CrossCutting", "{CF5BB4D0-6212-4F6C-B387-68466C90ED34}"
 EndProject
@@ -11,11 +11,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Logic", "Logic", "{88AC96DC
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UI", "UI", "{AFDB0CC8-37D2-42F5-BC47-6C098545AB8A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataClasses", "CrossCutting\DataClasses\DataClasses.csproj", "{6A78DE54-366B-49A7-AA9E-FFB8F3FB5744}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataClasses", "CrossCutting\DataClasses\DataClasses.csproj", "{6A78DE54-366B-49A7-AA9E-FFB8F3FB5744}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogFileAnalyzation", "Logic\LogFileAnalyzation\LogFileAnalyzation.csproj", "{C909A8C8-EA18-41DC-9143-8F17DFCC79DC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LogFileAnalyzation", "Logic\LogFileAnalyzation\LogFileAnalyzation.csproj", "{C909A8C8-EA18-41DC-9143-8F17DFCC79DC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogFileAnalyzation.Contract", "Logic\LogFileAnalyzation.Contract\LogFileAnalyzation.Contract.csproj", "{0A865647-334B-4654-A81C-AEA59C12B9F1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LogFileAnalyzation.Contract", "Logic\LogFileAnalyzation.Contract\LogFileAnalyzation.Contract.csproj", "{0A865647-334B-4654-A81C-AEA59C12B9F1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SshTarpitAnalyzer.WinForms", "UI\SshTarpitAnalyzer.WinForms\SshTarpitAnalyzer.WinForms.csproj", "{22E82C4E-E15D-4E3F-B84D-9047A25DBDA8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{0A865647-334B-4654-A81C-AEA59C12B9F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0A865647-334B-4654-A81C-AEA59C12B9F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0A865647-334B-4654-A81C-AEA59C12B9F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{22E82C4E-E15D-4E3F-B84D-9047A25DBDA8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{22E82C4E-E15D-4E3F-B84D-9047A25DBDA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{22E82C4E-E15D-4E3F-B84D-9047A25DBDA8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{22E82C4E-E15D-4E3F-B84D-9047A25DBDA8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -48,6 +54,7 @@ Global
 		{6A78DE54-366B-49A7-AA9E-FFB8F3FB5744} = {CF5BB4D0-6212-4F6C-B387-68466C90ED34}
 		{C909A8C8-EA18-41DC-9143-8F17DFCC79DC} = {88AC96DC-169D-4A11-BC6C-1B689D033DE0}
 		{0A865647-334B-4654-A81C-AEA59C12B9F1} = {88AC96DC-169D-4A11-BC6C-1B689D033DE0}
+		{22E82C4E-E15D-4E3F-B84D-9047A25DBDA8} = {AFDB0CC8-37D2-42F5-BC47-6C098545AB8A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C8B68457-DB64-411B-AF33-9FD33673D364}

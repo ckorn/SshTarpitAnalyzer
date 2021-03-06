@@ -18,7 +18,7 @@ namespace Logic.LogFileAnalyzation
         {
             List<ConnectionInformation> ret = new();
             using StringReader stringReader = new(text);
-            Regex lineRegex = new(@"(?<date>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*Client\('(?<ip>\d+\.\d+\.\d+\.\d+)', (?<port>\d+)\) (?<type>.*)");
+            Regex lineRegex = new(@"(?<date>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*Client \('(?<ip>\d+\.\d+\.\d+\.\d+)', (?<port>\d+)\) (?<type>.*)");
             Dictionary<(string ip, int port), DateTime> connectionStartDictionary = new();
             string line;
             while ((line = stringReader.ReadLine()) != null)
