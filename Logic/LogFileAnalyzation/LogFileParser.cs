@@ -14,7 +14,8 @@ namespace Logic.LogFileAnalyzation
     {
         private const string Connected = "connected";
         private const string Disconnected = "disconnected";
-        public IReadOnlyCollection<ConnectionInformation> Parse(string text)
+
+        public IReadOnlyList<ConnectionInformation> Parse(string text)
         {
             List<ConnectionInformation> ret = new();
             using StringReader stringReader = new(text);
@@ -57,6 +58,30 @@ namespace Logic.LogFileAnalyzation
             return ret;
         }
 
-        public IReadOnlyCollection<ConnectionInformation> ParseByFileName(string fileName) => Parse(File.ReadAllText(fileName));
+        public IReadOnlyList<ConnectionInformation> ParseByFileName(string fileName) => Parse(File.ReadAllText(fileName));
+
+        public IReadOnlyList<AttackerInfo> GetAttackerInfoList(IEnumerable<ConnectionInformation> connectionInformationList)
+        {
+            List<AttackerInfo> ret = new();
+            foreach (var groupedByIp in connectionInformationList.GroupBy(x => x.Ip))
+            {
+                ret.Add(new()
+                {
+                    Ip = groupedByIp.Key,
+                    Count = groupedByIp.Count(),
+                    AverageConnectionTime = (int)groupedByIp.Average(x => x.Duration.TotalSeconds),
+                    StandardDerivation = GetStandardDerivation(groupedByIp.Select(x => x.Duration.TotalSeconds).ToList()),
+                });
+            }
+            return ret;
+        }
+
+        private int GetStandardDerivation(IReadOnlyList<double> secondsList)
+        {
+            double average = secondsList.Average();
+            double sumOfSquaresOfDifferences = secondsList.Select(val => (val - average) * (val - average)).Sum();
+            double sd = Math.Sqrt(sumOfSquaresOfDifferences / secondsList.Count);
+            return (int)sd;
+        }
     }
 }

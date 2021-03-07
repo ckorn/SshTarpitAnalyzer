@@ -4,6 +4,13 @@
 
 <FileEdit @ref="fileEdit" Changed="@OnChanged" MaxMessageSize="99999999" />
 
+<Field Horizontal="true">
+    <FieldLabel ColumnSize="ColumnSize.Is2">Filter by IP:</FieldLabel>
+    <FieldBody ColumnSize="ColumnSize.Is10">
+        <TextEdit Text="@filterIp" TextChanged="@(async (string value) => await OnFilterIpChanged(value))"></TextEdit>
+    </FieldBody>
+</Field>
+
 <Button Clicked="@(async () => await HandleRedraw())">Analyze log</Button>
 <Button Clicked="@(async () => await HandleRedraw(true))">Group by 10 seconds</Button>
 
@@ -11,13 +18,46 @@
 
 <LineChart @ref="lineChart" TItem="double" />
 
+@if (attackerInfoList != null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>IP</th>
+                <th>Count</th>
+                <th>&empty; time</th>
+                <th>Standard derivation</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach ((AttackerInfo attackerInfo, int index) in attackerInfoList
+                .OrderByDescending(x => x.Count)
+                .Take(10)
+                .Select((x, i) => (x,i)))
+            {
+            <tr>
+                <td>@(index+1)</td>
+                <td>@attackerInfo.Ip</td>
+                <td>@attackerInfo.Count</td>
+                <td>@GetTimeText(attackerInfo.AverageConnectionTime)</td>
+                <td>@GetTimeText(attackerInfo.StandardDerivation)</td>
+            </tr>
+            }
+        </tbody>
+    </table>
+}
+
 @code {
     FileEdit fileEdit;
     LineChart<double> lineChart;
-    IReadOnlyCollection<ConnectionInformation> connectionInformationList;
+    IReadOnlyList<ConnectionInformation> connectionInformationList;
+    IReadOnlyList<ConnectionInformation> connectionInformationFilteredList;
     string sshTarpitLog;
     ILogFileParser logFileParser = new LogFileParser();
     string connections;
+    string filterIp;
+    IReadOnlyList<AttackerInfo> attackerInfoList = null;
 
     async Task OnChanged(FileChangedEventArgs e)
     {
@@ -51,33 +91,40 @@
         }
     }
 
+    async Task OnFilterIpChanged(string value)
+    {
+        this.filterIp = value;
+        await HandleRedraw();
+    }
+
     async Task HandleRedraw()
     {
         this.connectionInformationList = await GetConnectionInformationList();
+        this.attackerInfoList = this.logFileParser.GetAttackerInfoList(this.connectionInformationList);
         await HandleRedraw(false);
     }
 
     async Task HandleRedraw(bool group)
     {
         await lineChart.Clear();
-        List<(int seconds, int count)> logFileDataList 
-            = await Task.Run<List<(int seconds, int count)>>(() => LogFileData(connectionInformationList, group));
+        this.connectionInformationFilteredList = connectionInformationList;
+        if (!string.IsNullOrWhiteSpace(filterIp))
+        {
+            this.connectionInformationFilteredList = connectionInformationList
+                .Where(x => x.Ip == filterIp).ToList();
+        }
+        List<(int seconds, int count)> logFileDataList
+        = await Task.Run<List<(int seconds, int count)>>(() => LogFileData(connectionInformationFilteredList, group));
         List<string> labelList = new();
         List<double> dataList = new();
         foreach ((int seconds, int count) in logFileDataList)
         {
-            string label = $"{seconds.ToString()} s";
-            if (seconds >= 60)
-            {
-                int minutes = seconds / 60;
-                int secondsPart = seconds % 60;
-                label = $"{minutes}m {secondsPart}s";
-            }
+            string label = GetTimeText(seconds);
             labelList.Add(label);
             dataList.Add(count);
         }
         await lineChart.AddLabelsDatasetsAndUpdate(labelList, GetLineChartDataset(dataList));
-        this.connections = $"Connections: {connectionInformationList.Count}";
+        this.connections = $"Connections: {connectionInformationFilteredList.Count}";
     }
 
     LineChartDataset<double> GetLineChartDataset(List<double> dataList)
@@ -97,18 +144,19 @@
     List<string> backgroundColors = new List<string> { ChartColor.FromRgba(255, 99, 132, 0.2f), ChartColor.FromRgba(54, 162, 235, 0.2f), ChartColor.FromRgba(255, 206, 86, 0.2f), ChartColor.FromRgba(75, 192, 192, 0.2f), ChartColor.FromRgba(153, 102, 255, 0.2f), ChartColor.FromRgba(255, 159, 64, 0.2f) };
     List<string> borderColors = new List<string> { ChartColor.FromRgba(255, 99, 132, 1f), ChartColor.FromRgba(54, 162, 235, 1f), ChartColor.FromRgba(255, 206, 86, 1f), ChartColor.FromRgba(75, 192, 192, 1f), ChartColor.FromRgba(153, 102, 255, 1f), ChartColor.FromRgba(255, 159, 64, 1f) };
 
-    async Task<IReadOnlyCollection<ConnectionInformation>> GetConnectionInformationList()
+    async Task<IReadOnlyList<ConnectionInformation>> GetConnectionInformationList()
     {
         if (string.IsNullOrEmpty(this.sshTarpitLog))
         {
             return new List<ConnectionInformation>();
         }
-        IReadOnlyCollection<ConnectionInformation> connectionInformationList
-            = await Task< IReadOnlyCollection<ConnectionInformation>>.Run(() =>logFileParser.Parse(sshTarpitLog));
+        IReadOnlyList<ConnectionInformation> connectionInformationList
+            = await Task<IReadOnlyList<ConnectionInformation>>.Run(() => logFileParser.Parse(sshTarpitLog));
         return connectionInformationList;
     }
 
-    List<(int seconds, int count)> LogFileData(IReadOnlyCollection<ConnectionInformation> connectionInformationList, bool group)
+    List<(int seconds, int count)> LogFileData(IReadOnlyList<ConnectionInformation> connectionInformationList,
+        bool group)
     {
         List<(int seconds, int count)> ret = new();
         int groupPerSeconds = 1;
@@ -125,5 +173,17 @@
             ret.Add((xValue, count));
         }
         return ret;
+    }
+
+    string GetTimeText(int seconds)
+    {
+        string label = $"{seconds.ToString()} s";
+        if (seconds >= 60)
+        {
+            int minutes = seconds / 60;
+            int secondsPart = seconds % 60;
+            label = $"{minutes}m {secondsPart}s";
+        }
+        return label;
     }
 }

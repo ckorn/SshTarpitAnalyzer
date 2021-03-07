@@ -9,7 +9,8 @@ namespace Logic.LogFileAnalyzation.Contract
 {
     public interface ILogFileParser
     {
-        IReadOnlyCollection<ConnectionInformation> ParseByFileName(string fileName);
-        IReadOnlyCollection<ConnectionInformation> Parse(string text);
+        IReadOnlyList<ConnectionInformation> ParseByFileName(string fileName);
+        IReadOnlyList<ConnectionInformation> Parse(string text);
+        IReadOnlyList<AttackerInfo> GetAttackerInfoList(IEnumerable<ConnectionInformation> connectionInformationList);
     }
 }
