@@ -11,7 +11,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SshTarpitAnalyzer</title>
-    <base href="~/ssh-tarpit/" />
+    <environment include="Staging,Production">
+        <base href="~/ssh-tarpit/" />
+    </environment>
+    <environment include="Development">
+        <base href="~/" />
+    </environment>
     <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
     <link href="css/site.css" rel="stylesheet" />
     <link href="SshTarpitAnalyzer.Blazor.styles.css" rel="stylesheet" />
