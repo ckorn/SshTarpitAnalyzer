@@ -25,7 +25,7 @@ namespace UI.SshTarpitAnalyzer.WinForms
 
         private void button1_Click(object sender, EventArgs e)
         {
-            List<ConnectionInformation> list = logFileParser.Parse(textBoxLogFile.Text);
+            IReadOnlyCollection<ConnectionInformation> list = logFileParser.Parse(textBoxLogFile.Text);
             textBoxDurationLog.Text = string.Join(Environment.NewLine, list.OrderByDescending(x => x.Duration)
                 .Select(x => $"{x.Duration} {x.Ip}"));
 
