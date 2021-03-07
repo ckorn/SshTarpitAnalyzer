@@ -3,7 +3,18 @@
 
 <h3>SshTarpit</h3>
 
-<!--<FileEdit @ref="fileEdit" Changed="@OnChanged" MaxMessageSize="99999999" />-->
+@*<FileEdit @ref="fileEdit" Changed="@OnChanged" MaxMessageSize="99999999" />*@
+@*<BlazorInputFile.InputFile OnChange="HandleFileSelected" MaxMessageSize="99999999" />*@
+
+@*@if (file != null)
+{
+<p>Name: @file.Name</p>
+<p>Size in bytes: @file.Size</p>
+<p>Last modified date: @file.LastModified.ToShortDateString()</p>
+<p>Content type (not always supplied by the browser): @file.Type</p>
+}
+
+<p>@status</p>*@
 
 <Field Horizontal="true">
     <FieldLabel ColumnSize="ColumnSize.Is2">Pastebin raw url:</FieldLabel>
@@ -14,9 +25,9 @@
 
 <Button Clicked="@(async () => await HandleRedraw())">Analyze log</Button>
 
-<LineChart @ref="lineChart" TItem="double" />
+<p>@connections</p>
 
-<!--<BlazorInputFile.InputFile OnChange="HandleFileSelected" MaxMessageSize="99999999" />-->
+<LineChart @ref="lineChart" TItem="double" />
 
 @code {
     FileEdit fileEdit;
@@ -25,10 +36,21 @@
     string sshTarpitLogUrl;
     ILogFileParser logFileParser = new LogFileParser();
     IFileListEntry file;
+    string status;
+    string connections;
 
-    void HandleFileSelected(IFileListEntry[] files)
+    async Task HandleFileSelected(IFileListEntry[] files)
     {
         file = files.FirstOrDefault();
+        if (file != null)
+        {
+            // Just load into .NET memory to show it can be done
+            // Alternatively it could be saved to disk, or parsed in memory, or similar
+            var ms = new MemoryStream();
+            await file.Data.CopyToAsync(ms);
+
+            status = $"Finished loading {file.Size} bytes from {file.Name}";
+        }
     }
 
     async Task OnChanged(FileChangedEventArgs e)
@@ -79,7 +101,8 @@
         }
         this.sshTarpitLog = await Http.GetStringAsync(this.sshTarpitLogUrl);
         await lineChart.Clear();
-        List<(int seconds, int count)> logFileDataList = await Task.Run<List<(int seconds, int count)>>(() => LogFileData(this.sshTarpitLog));
+        IReadOnlyCollection<ConnectionInformation> connectionInformationList = await Task.Run<IReadOnlyCollection<ConnectionInformation>>(() => GetConnectionInformation(this.sshTarpitLog));
+        List<(int seconds, int count)> logFileDataList = await Task.Run<List<(int seconds, int count)>>(() => LogFileData(connectionInformationList));
         List<string> labelList = new();
         List<double> dataList = new();
         foreach ((int seconds, int count) in logFileDataList)
@@ -95,6 +118,7 @@
             dataList.Add(count);
         }
         await lineChart.AddLabelsDatasetsAndUpdate(labelList, GetLineChartDataset(dataList));
+        this.connections = $"Connections: {connectionInformationList.Count}";
     }
 
     LineChartDataset<double> GetLineChartDataset(List<double> dataList)
@@ -114,14 +138,19 @@
     List<string> backgroundColors = new List<string> { ChartColor.FromRgba(255, 99, 132, 0.2f), ChartColor.FromRgba(54, 162, 235, 0.2f), ChartColor.FromRgba(255, 206, 86, 0.2f), ChartColor.FromRgba(75, 192, 192, 0.2f), ChartColor.FromRgba(153, 102, 255, 0.2f), ChartColor.FromRgba(255, 159, 64, 0.2f) };
     List<string> borderColors = new List<string> { ChartColor.FromRgba(255, 99, 132, 1f), ChartColor.FromRgba(54, 162, 235, 1f), ChartColor.FromRgba(255, 206, 86, 1f), ChartColor.FromRgba(75, 192, 192, 1f), ChartColor.FromRgba(153, 102, 255, 1f), ChartColor.FromRgba(255, 159, 64, 1f) };
 
-    List<(int seconds, int count)> LogFileData(string sshTarpitLog)
+    IReadOnlyCollection<ConnectionInformation> GetConnectionInformation(string sshTarpitLog)
     {
-        List<(int, int)> ret = new();
         if (string.IsNullOrEmpty(sshTarpitLog))
         {
-            return ret;
+            return new List<ConnectionInformation>();
         }
         IReadOnlyCollection<ConnectionInformation> connectionInformationList = logFileParser.Parse(sshTarpitLog);
+        return connectionInformationList;
+    }
+
+    List<(int seconds, int count)> LogFileData(IReadOnlyCollection<ConnectionInformation> connectionInformationList)
+    {
+        List<(int seconds, int count)> ret = new();
         foreach (var grouped in connectionInformationList.GroupBy(x => (int)x.Duration.TotalSeconds).OrderBy(x => x.Key))
         {
             int count = grouped.Count();
