@@ -183,6 +183,12 @@
             int minutes = seconds / 60;
             int secondsPart = seconds % 60;
             label = $"{minutes}m {secondsPart}s";
+            if (minutes >= 60)
+            {
+                int hours = minutes / 60;
+                int minutesPart = minutes % 60;
+                label = $"{hours}h {minutesPart}m {secondsPart}s";
+            }
         }
         return label;
     }
