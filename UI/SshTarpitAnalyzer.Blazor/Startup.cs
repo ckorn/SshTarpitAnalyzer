@@ -39,7 +39,10 @@ namespace UI.SshTarpitAnalyzer.Blazor
               })
               .AddBootstrapProviders()
               .AddFontAwesomeIcons();
-            services.AddHttpClient();
+            services.AddSignalR(o => {
+                    o.MaximumReceiveMessageSize = null; // no limit
+                    o.EnableDetailedErrors = true;
+                }).AddMessagePackProtocol();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

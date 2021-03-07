@@ -1,27 +1,8 @@
-﻿@inject HttpClient Http
-@page "/sshtarpit"
+﻿@page "/sshtarpit"
 
 <h3>SshTarpit</h3>
 
-@*<FileEdit @ref="fileEdit" Changed="@OnChanged" MaxMessageSize="99999999" />*@
-@*<BlazorInputFile.InputFile OnChange="HandleFileSelected" MaxMessageSize="99999999" />*@
-
-@*@if (file != null)
-{
-<p>Name: @file.Name</p>
-<p>Size in bytes: @file.Size</p>
-<p>Last modified date: @file.LastModified.ToShortDateString()</p>
-<p>Content type (not always supplied by the browser): @file.Type</p>
-}
-
-<p>@status</p>*@
-
-<Field Horizontal="true">
-    <FieldLabel ColumnSize="ColumnSize.Is2">Pastebin raw url:</FieldLabel>
-    <FieldBody ColumnSize="ColumnSize.Is10">
-        <TextEdit @bind-Text="@sshTarpitLogUrl"></TextEdit>
-    </FieldBody>
-</Field>
+<FileEdit @ref="fileEdit" Changed="@OnChanged" MaxMessageSize="99999999" />
 
 <Button Clicked="@(async () => await HandleRedraw())">Analyze log</Button>
 <Button Clicked="@(async () => await HandleRedraw(true))">Group by 10 seconds</Button>
@@ -35,25 +16,8 @@
     LineChart<double> lineChart;
     IReadOnlyCollection<ConnectionInformation> connectionInformationList;
     string sshTarpitLog;
-    string sshTarpitLogUrl;
     ILogFileParser logFileParser = new LogFileParser();
-    IFileListEntry file;
-    string status;
     string connections;
-
-    async Task HandleFileSelected(IFileListEntry[] files)
-    {
-        file = files.FirstOrDefault();
-        if (file != null)
-        {
-            // Just load into .NET memory to show it can be done
-            // Alternatively it could be saved to disk, or parsed in memory, or similar
-            var ms = new MemoryStream();
-            await file.Data.CopyToAsync(ms);
-
-            status = $"Finished loading {file.Size} bytes from {file.Name}";
-        }
-    }
 
     async Task OnChanged(FileChangedEventArgs e)
     {
@@ -95,16 +59,9 @@
 
     async Task HandleRedraw(bool group)
     {
-        //if (file == null)
-        //{
-        //    return;
-        //}
-        //using (StreamReader reader = new StreamReader(file.Data))
-        //{
-        //    this.sshTarpitLog = await reader.ReadToEndAsync();
-        //}
         await lineChart.Clear();
-        List<(int seconds, int count)> logFileDataList = await Task.Run<List<(int seconds, int count)>>(() => LogFileData(connectionInformationList, group));
+        List<(int seconds, int count)> logFileDataList 
+            = await Task.Run<List<(int seconds, int count)>>(() => LogFileData(connectionInformationList, group));
         List<string> labelList = new();
         List<double> dataList = new();
         foreach ((int seconds, int count) in logFileDataList)
@@ -142,12 +99,12 @@
 
     async Task<IReadOnlyCollection<ConnectionInformation>> GetConnectionInformationList()
     {
-        if (string.IsNullOrEmpty(this.sshTarpitLogUrl))
+        if (string.IsNullOrEmpty(this.sshTarpitLog))
         {
             return new List<ConnectionInformation>();
         }
-        this.sshTarpitLog = await Http.GetStringAsync(this.sshTarpitLogUrl);
-        IReadOnlyCollection<ConnectionInformation> connectionInformationList = logFileParser.Parse(sshTarpitLog);
+        IReadOnlyCollection<ConnectionInformation> connectionInformationList
+            = await Task< IReadOnlyCollection<ConnectionInformation>>.Run(() =>logFileParser.Parse(sshTarpitLog));
         return connectionInformationList;
     }
 
