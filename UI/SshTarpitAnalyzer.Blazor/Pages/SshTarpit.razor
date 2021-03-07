@@ -24,6 +24,7 @@
 </Field>
 
 <Button Clicked="@(async () => await HandleRedraw())">Analyze log</Button>
+<Button Clicked="@(async () => await HandleRedraw(true))">Group by 10 seconds</Button>
 
 <p>@connections</p>
 
@@ -32,6 +33,7 @@
 @code {
     FileEdit fileEdit;
     LineChart<double> lineChart;
+    IReadOnlyCollection<ConnectionInformation> connectionInformationList;
     string sshTarpitLog;
     string sshTarpitLogUrl;
     ILogFileParser logFileParser = new LogFileParser();
@@ -87,6 +89,12 @@
 
     async Task HandleRedraw()
     {
+        this.connectionInformationList = await GetConnectionInformationList();
+        await HandleRedraw(false);
+    }
+
+    async Task HandleRedraw(bool group)
+    {
         //if (file == null)
         //{
         //    return;
@@ -95,14 +103,8 @@
         //{
         //    this.sshTarpitLog = await reader.ReadToEndAsync();
         //}
-        if (string.IsNullOrEmpty(this.sshTarpitLogUrl))
-        {
-            return;
-        }
-        this.sshTarpitLog = await Http.GetStringAsync(this.sshTarpitLogUrl);
         await lineChart.Clear();
-        IReadOnlyCollection<ConnectionInformation> connectionInformationList = await Task.Run<IReadOnlyCollection<ConnectionInformation>>(() => GetConnectionInformation(this.sshTarpitLog));
-        List<(int seconds, int count)> logFileDataList = await Task.Run<List<(int seconds, int count)>>(() => LogFileData(connectionInformationList));
+        List<(int seconds, int count)> logFileDataList = await Task.Run<List<(int seconds, int count)>>(() => LogFileData(connectionInformationList, group));
         List<string> labelList = new();
         List<double> dataList = new();
         foreach ((int seconds, int count) in logFileDataList)
@@ -138,23 +140,32 @@
     List<string> backgroundColors = new List<string> { ChartColor.FromRgba(255, 99, 132, 0.2f), ChartColor.FromRgba(54, 162, 235, 0.2f), ChartColor.FromRgba(255, 206, 86, 0.2f), ChartColor.FromRgba(75, 192, 192, 0.2f), ChartColor.FromRgba(153, 102, 255, 0.2f), ChartColor.FromRgba(255, 159, 64, 0.2f) };
     List<string> borderColors = new List<string> { ChartColor.FromRgba(255, 99, 132, 1f), ChartColor.FromRgba(54, 162, 235, 1f), ChartColor.FromRgba(255, 206, 86, 1f), ChartColor.FromRgba(75, 192, 192, 1f), ChartColor.FromRgba(153, 102, 255, 1f), ChartColor.FromRgba(255, 159, 64, 1f) };
 
-    IReadOnlyCollection<ConnectionInformation> GetConnectionInformation(string sshTarpitLog)
+    async Task<IReadOnlyCollection<ConnectionInformation>> GetConnectionInformationList()
     {
-        if (string.IsNullOrEmpty(sshTarpitLog))
+        if (string.IsNullOrEmpty(this.sshTarpitLogUrl))
         {
             return new List<ConnectionInformation>();
         }
+        this.sshTarpitLog = await Http.GetStringAsync(this.sshTarpitLogUrl);
         IReadOnlyCollection<ConnectionInformation> connectionInformationList = logFileParser.Parse(sshTarpitLog);
         return connectionInformationList;
     }
 
-    List<(int seconds, int count)> LogFileData(IReadOnlyCollection<ConnectionInformation> connectionInformationList)
+    List<(int seconds, int count)> LogFileData(IReadOnlyCollection<ConnectionInformation> connectionInformationList, bool group)
     {
         List<(int seconds, int count)> ret = new();
-        foreach (var grouped in connectionInformationList.GroupBy(x => (int)x.Duration.TotalSeconds).OrderBy(x => x.Key))
+        int groupPerSeconds = 1;
+        if (group)
+        {
+            groupPerSeconds = 10;
+        }
+        foreach (var grouped in connectionInformationList
+            .GroupBy(x => ((int)x.Duration.TotalSeconds) / groupPerSeconds)
+            .OrderBy(x => x.Key))
         {
             int count = grouped.Count();
-            ret.Add((grouped.Key, count));
+            int xValue = (group) ? (grouped.Key * 10) + 10 : grouped.Key;
+            ret.Add((xValue, count));
         }
         return ret;
     }
