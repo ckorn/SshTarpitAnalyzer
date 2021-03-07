@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Blazorise;
 using Blazorise.Bootstrap;
 using Blazorise.Icons.FontAwesome;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace UI.SshTarpitAnalyzer.Blazor
 {
@@ -52,6 +53,10 @@ namespace UI.SshTarpitAnalyzer.Blazor
             {
                 app.UseExceptionHandler("/Error");
             }
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
 
             app.UseStaticFiles();
 
