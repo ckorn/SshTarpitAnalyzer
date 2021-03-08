@@ -1,8 +1,13 @@
 # SshTarpitAnalyzer
 Analyze the logfile of ssh-tarpit.
 
-Currently you have to upload the logfile to a pastebin service and enter the raw url.
-There is some problem with file uploads which I have to fix first.
-Shows the number of connections and a chart with the time they have spend in the tarpit.
+Just choose the log file.
+You get
+- the number of connections
+- chart over tarpit time
+- TOP10 of attackers
+- filter by attacker IP
 
 Has an UI in WinForms (not maintained, just for testing) and Blazor (still need to learn that^^)
+
+Credits go to [SemperVideo](https://www.youtube.com/SemperVideo) for the [ssh-tarpit video](https://www.youtube.com/watch?v=z-7CEklXcxY)
