@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using UI.SshTarpitAnalyzer.Blazor.Data
 
 <h3>SshTarpit</h3>
 
@@ -12,8 +13,24 @@
     </FieldBody>
 </Field>
 
-<Button Clicked="@(async () => await HandleRedraw())">Analyze log</Button>
-<Button Clicked="@(async () => await HandleRedraw(true))">Group by 10 seconds</Button>
+<Fields>
+    <Field ColumnSize="ColumnSize.Is2.OnDesktop">
+        <Button Color="Color.Primary" Clicked="@(async () => await HandleRedraw())">Analyze log</Button>
+    </Field>
+    <Field ColumnSize="ColumnSize.Is2.OnDesktop">
+        <NumericEdit TValue="int" @ref="timeIntervallToGroupInput" Value="10" Max="10000"></NumericEdit>
+    </Field>
+    <Field ColumnSize="ColumnSize.Is2.OnDesktop">
+        <Select TValue="TimeIntervall" @bind-SelectedValue="@selectedTimeIntervall">
+            <SelectItem Value="TimeIntervall.Seconds">Seconds</SelectItem>
+            <SelectItem Value="TimeIntervall.Minutes">Minutes</SelectItem>
+            <SelectItem Value="TimeIntervall.Hours">Hours</SelectItem>
+        </Select>
+    </Field>
+    <Field ColumnSize="ColumnSize.Is2.OnDesktop">
+        <Button Color="Color.Primary" Clicked="@(async () => await HandleRedraw(true))">Group by</Button>
+    </Field>
+</Fields>
 
 <p>@connections</p>
 
@@ -33,17 +50,17 @@
         </thead>
         <tbody>
             @foreach ((AttackerInfo attackerInfo, int index) in attackerInfoList
-                .OrderByDescending(x => x.Count)
-                .Take(10)
-                .Select((x, i) => (x,i)))
+               .OrderByDescending(x => x.Count)
+               .Take(10)
+               .Select((x, i) => (x, i)))
             {
-            <tr>
-                <td>@(index+1)</td>
-                <td>@attackerInfo.Ip</td>
-                <td>@attackerInfo.Count</td>
-                <td>@GetTimeText(attackerInfo.AverageConnectionTime)</td>
-                <td>@GetTimeText(attackerInfo.StandardDerivation)</td>
-            </tr>
+                <tr>
+                    <td>@(index+1)</td>
+                    <td>@attackerInfo.Ip</td>
+                    <td>@attackerInfo.Count</td>
+                    <td>@GetTimeText(attackerInfo.AverageConnectionTime)</td>
+                    <td>@GetTimeText(attackerInfo.StandardDerivation)</td>
+                </tr>
             }
         </tbody>
     </table>
@@ -51,6 +68,7 @@
 
 @code {
     FileEdit fileEdit;
+    NumericEdit<int> timeIntervallToGroupInput;
     string uploadProgress;
     LineChart<double> lineChart;
     IReadOnlyList<ConnectionInformation> connectionInformationList;
@@ -60,6 +78,7 @@
     string connections;
     string filterIp;
     IReadOnlyList<AttackerInfo> attackerInfoList = null;
+    TimeIntervall selectedTimeIntervall = TimeIntervall.Seconds;
 
     async Task OnChanged(FileChangedEventArgs e)
     {
@@ -179,17 +198,40 @@
         int groupPerSeconds = 1;
         if (group)
         {
-            groupPerSeconds = 10;
+            groupPerSeconds = GetGroupBySeconds();
         }
         foreach (var grouped in connectionInformationList
             .GroupBy(x => ((int)x.Duration.TotalSeconds) / groupPerSeconds)
             .OrderBy(x => x.Key))
         {
             int count = grouped.Count();
-            int xValue = (group) ? (grouped.Key * 10) + 10 : grouped.Key;
+            int xValue = (group) ? (grouped.Key * groupPerSeconds) + groupPerSeconds : grouped.Key;
             ret.Add((xValue, count));
         }
         return ret;
+    }
+
+    int GetGroupBySeconds()
+    {
+        int seconds = 1;
+        if (timeIntervallToGroupInput.Value > 0)
+        {
+            switch (selectedTimeIntervall)
+            {
+                case TimeIntervall.Seconds:
+                    seconds = timeIntervallToGroupInput.Value;
+                    break;
+                case TimeIntervall.Minutes:
+                    seconds = timeIntervallToGroupInput.Value * 60;
+                    break;
+                case TimeIntervall.Hours:
+                    seconds = timeIntervallToGroupInput.Value * 60 * 60;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException($"{nameof(selectedTimeIntervall)} = {selectedTimeIntervall}");
+            }
+        }
+        return seconds;
     }
 
     string GetTimeText(int seconds)
