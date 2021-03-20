@@ -2,8 +2,9 @@
 
 <h3>SshTarpit</h3>
 
-<FileEdit @ref="fileEdit" Changed="@OnChanged" MaxMessageSize="99999999" />
-
+<FileEdit @ref="fileEdit" Changed="@OnChanged" Progressed="@OnProgressed"
+          Started="@OnStarted" Ended="@OnEnded" MaxMessageSize="1048576" />
+<p>@uploadProgress</p>
 <Field Horizontal="true">
     <FieldLabel ColumnSize="ColumnSize.Is2">Filter by IP:</FieldLabel>
     <FieldBody ColumnSize="ColumnSize.Is10">
@@ -50,6 +51,7 @@
 
 @code {
     FileEdit fileEdit;
+    string uploadProgress;
     LineChart<double> lineChart;
     IReadOnlyList<ConnectionInformation> connectionInformationList;
     IReadOnlyList<ConnectionInformation> connectionInformationFilteredList;
@@ -89,6 +91,21 @@
         {
             this.StateHasChanged();
         }
+    }
+
+    void OnProgressed(FileProgressedEventArgs e)
+    {
+        uploadProgress = $"Upload progress: {e.Percentage:N2} % {e.Progress}";
+    }
+
+    void OnStarted(FileStartedEventArgs e)
+    {
+        uploadProgress = $"Upload starts... ({e.File?.Name})";
+    }
+
+    void OnEnded(FileEndedEventArgs e)
+    {
+        uploadProgress = "Upload complete. You can now analyze the data.";
     }
 
     async Task OnFilterIpChanged(string value)
