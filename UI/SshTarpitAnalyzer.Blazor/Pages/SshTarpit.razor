@@ -1,4 +1,4 @@
-﻿@page "/sshtarpit"
+﻿@page "/"
 
 <h3>SshTarpit</h3>
 
@@ -95,7 +95,7 @@
 
     void OnProgressed(FileProgressedEventArgs e)
     {
-        uploadProgress = $"Upload progress: {e.Percentage:N2} % {e.Progress}";
+        uploadProgress = $"Upload progress: {e.Percentage:N2} %";
     }
 
     void OnStarted(FileStartedEventArgs e)
